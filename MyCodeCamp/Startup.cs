@@ -19,14 +19,16 @@ namespace MyCodeCamp
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
-            Configuration = builder.Build();
+            _config = builder.Build();
         }
 
-        public IConfigurationRoot Configuration { get; }
+        IConfigurationRoot _config { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton(_config);
+
             // Add framework services.
             services.AddMvc();
         }
@@ -34,7 +36,7 @@ namespace MyCodeCamp
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+            loggerFactory.AddConsole(_config.GetSection("Logging"));
             loggerFactory.AddDebug();
 
             app.UseMvc();
