@@ -4,19 +4,20 @@ namespace MyCodeCamp.Models
 {
     public class CampModel
     {
-        public int Id { get; set; }
+        public string Url { get; set; }
         public string Moniker { get; set; }
         public string Name { get; set; }
-        public DateTime EventDate { get; set; } = DateTime.MinValue;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
         public int Length { get; set; }
         public string Description { get; set; }
 
-        public string Address1 { get; set; }
-        public string Address2 { get; set; }
-        public string Address3 { get; set; }
-        public string CityTown { get; set; }
-        public string StateProvince { get; set; }
-        public string PostalCode { get; set; }
-        public string Country { get; set; }
+        public string LocationAddress1 { get; set; }
+        public string LocationAddress2 { get; set; }
+        public string LocationAddress3 { get; set; }
+        public string LocationCityTown { get; set; }
+        public string LocationStateProvince { get; set; }
+        public string LocationPostalCode { get; set; }
+        public string LocationCountry { get; set; }
     }
 }

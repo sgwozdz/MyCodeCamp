@@ -1,22 +1,27 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MyCodeCamp.Data;
 using MyCodeCamp.Data.Entities;
+using MyCodeCamp.Models;
 
 namespace MyCodeCamp.Controllers
 {
     [Route("api/[controller]")]
-    public class CampsController : Controller
+    public class CampsController : BaseController
     {
         private readonly ICampRepository _campRepository;
         private readonly ILogger<CampsController> _logger;
+        private readonly IMapper _mapper;
 
-        public CampsController(ICampRepository campRepository, ILogger<CampsController> logger)
+        public CampsController(ICampRepository campRepository, ILogger<CampsController> logger, IMapper mapper)
         {
             _campRepository = campRepository;
             _logger = logger;
+            _mapper = mapper;
         }
 
         [HttpGet("")]
@@ -24,24 +29,24 @@ namespace MyCodeCamp.Controllers
         {
             var camps = _campRepository.GetAllCamps();
 
-            return Ok(camps);
+            return Ok(_mapper.Map<IEnumerable<CampModel>>(camps));
         }
 
-        [HttpGet("{id}", Name = "CampGet")]
-        public IActionResult Get(int id, bool includeSpeakers = false)
+        [HttpGet("{moniker}", Name = "CampGet")]
+        public IActionResult Get(string moniker, bool includeSpeakers = false)
         {
             try
             {
                 _logger.LogInformation("Getting a Code Camp");
 
                 var camp = includeSpeakers
-                    ? _campRepository.GetCampWithSpeakers(id)
-                    : _campRepository.GetCamp(id);
+                    ? _campRepository.GetCampByMonikerWithSpeakers(moniker)
+                    : _campRepository.GetCampByMoniker(moniker);
 
                 if (camp == null)
-                    return NotFound($"Camp {id} was not found");
+                    return NotFound($"Camp {moniker} was not found");
 
-                return Ok(camp);
+                return Ok(_mapper.Map<CampModel>(camp));
             }
             catch (Exception exception)
             {
