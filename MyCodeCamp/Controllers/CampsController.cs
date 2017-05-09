@@ -57,17 +57,24 @@ namespace MyCodeCamp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody]Camp model)
+        public async Task<IActionResult> Post([FromBody]CampModel model)
         {
             try
             {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
                 _logger.LogInformation("Creating a new Code Camp");
 
-                _campRepository.Add(model);
+                var camp = _mapper.Map<Camp>(model);
+
+                _campRepository.Add(camp);
                 if (await _campRepository.SaveAllAsync())
                 {
-                    var newUri = Url.Link("CampGet", new { id = model.Id });
-                    return Created(newUri, model);
+                    var newUri = Url.Link("CampGet", new { moniker = camp.Moniker });
+                    return Created(newUri, camp);
                 }
             }
             catch (Exception exception)
