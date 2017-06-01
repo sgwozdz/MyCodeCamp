@@ -62,6 +62,7 @@ namespace MyCodeCamp.Controllers
             return BadRequest("Couldn't get Camp");
         }
 
+        [Authorize(Policy = "SuperUsers")]
         [HttpPost]
         public async Task<IActionResult> Post([FromBody]CampModel model)
         {
