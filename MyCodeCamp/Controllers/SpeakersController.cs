@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -15,38 +16,55 @@ namespace MyCodeCamp.Controllers
 {
     [Route("api/camps/{moniker}/speakers")]
     [ValidateModel]
+    [ApiVersion("1.1")]
+    [ApiVersion("1.0")]
     public class SpeakersController : BaseController
     {
-        private readonly ICampRepository _campRepository;
-        private readonly ILogger<SpeakersController> _logger;
-        private readonly IMapper _mapper;
-        private readonly UserManager<CampUser> _userManager;
+        protected readonly ICampRepository CampRepository;
+        protected readonly ILogger<SpeakersController> Logger;
+        protected readonly IMapper Mapper;
+        protected readonly UserManager<CampUser> UserManager;
 
         public SpeakersController(ICampRepository campRepository, ILogger<SpeakersController> logger, IMapper mapper, UserManager<CampUser> userManager)
         {
-            _campRepository = campRepository;
-            _logger = logger;
-            _mapper = mapper;
-            _userManager = userManager;
+            CampRepository = campRepository;
+            Logger = logger;
+            Mapper = mapper;
+            UserManager = userManager;
         }
 
-
         [HttpGet]
+        [MapToApiVersion("1.0")]
         public IActionResult Get(string moniker, bool includeTalks = false)
         {
             var speakers = includeTalks
-                ? _campRepository.GetSpeakersByMonikerWithTalks(moniker)
-                : _campRepository.GetSpeakersByMoniker(moniker);
+                ? CampRepository.GetSpeakersByMonikerWithTalks(moniker)
+                : CampRepository.GetSpeakersByMoniker(moniker);
 
-            return Ok(_mapper.Map<IEnumerable<SpeakerModel>>(speakers));
+            return Ok(Mapper.Map<IEnumerable<SpeakerModel>>(speakers));
+        }
+
+        [HttpGet]
+        [MapToApiVersion("1.1")]
+        public virtual IActionResult GetWithCount(string moniker, bool includeTalks = false)
+        {
+            var speakers = includeTalks
+                ? CampRepository.GetSpeakersByMonikerWithTalks(moniker)
+                : CampRepository.GetSpeakersByMoniker(moniker);
+
+            return Ok(new
+            {
+                count = speakers.Count(),
+                results = Mapper.Map<IEnumerable<SpeakerModel>>(speakers)
+            });
         }
 
         [HttpGet("{id}", Name = "SpeakerGet")]
         public IActionResult Get(string moniker, int id, bool includeTalks = false)
         {
             var speaker = includeTalks
-                ? _campRepository.GetSpeakerWithTalks(id)
-                : _campRepository.GetSpeaker(id);
+                ? CampRepository.GetSpeakerWithTalks(id)
+                : CampRepository.GetSpeaker(id);
 
             if (speaker == null)
             {
@@ -58,7 +76,7 @@ namespace MyCodeCamp.Controllers
                 BadRequest("Speaker not in specified Camp");
             }
 
-            return Ok(_mapper.Map<SpeakerModel>(speaker));
+            return Ok(Mapper.Map<SpeakerModel>(speaker));
         }
 
         [Authorize]
@@ -67,31 +85,31 @@ namespace MyCodeCamp.Controllers
         {
             try
             {
-                var camp = _campRepository.GetCampByMoniker(moniker);
+                var camp = CampRepository.GetCampByMoniker(moniker);
                 if (camp == null)
                 {
                     return BadRequest("Could not find Camp");
                 }
 
-                var speaker = _mapper.Map<Speaker>(model);
+                var speaker = Mapper.Map<Speaker>(model);
                 speaker.Camp = camp;
 
-                var campUser = await _userManager.FindByNameAsync(User.Identity.Name);
+                var campUser = await UserManager.FindByNameAsync(User.Identity.Name);
                 if (campUser != null)
                 {
                     speaker.User = campUser;
-                    _campRepository.Add(speaker);
+                    CampRepository.Add(speaker);
 
-                    if (await _campRepository.SaveAllAsync())
+                    if (await CampRepository.SaveAllAsync())
                     {
                         var url = Url.Link("SpeakerGet", new { moniker = camp.Moniker, id = speaker.Id });
-                        return Created(url, _mapper.Map<SpeakerModel>(speaker));
+                        return Created(url, Mapper.Map<SpeakerModel>(speaker));
                     }
                 }
             }
             catch (Exception exception)
             {
-                _logger.LogError($"Exception thrown while adding speaker: {exception}");
+                Logger.LogError($"Exception thrown while adding speaker: {exception}");
             }
 
             return BadRequest("Could not add ne speaker");
@@ -103,7 +121,7 @@ namespace MyCodeCamp.Controllers
         {
             try
             {
-                var speaker = _campRepository.GetSpeaker(id);
+                var speaker = CampRepository.GetSpeaker(id);
                 if (speaker == null)
                 {
                     return NotFound();
@@ -119,16 +137,16 @@ namespace MyCodeCamp.Controllers
                     return Forbid();
                 }
 
-                _mapper.Map(model, speaker);
+                Mapper.Map(model, speaker);
 
-                if (await _campRepository.SaveAllAsync())
+                if (await CampRepository.SaveAllAsync())
                 {
-                    return Ok(_mapper.Map<SpeakerModel>(speaker));
+                    return Ok(Mapper.Map<SpeakerModel>(speaker));
                 }
             }
             catch (Exception exception)
             {
-                _logger.LogError($"Exception thrown while updating speaker: {exception}");
+                Logger.LogError($"Exception thrown while updating speaker: {exception}");
             }
 
             return BadRequest("Could not update speaker");
@@ -137,11 +155,11 @@ namespace MyCodeCamp.Controllers
 
         [Authorize]
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(String moniker, int id)
+        public async Task<IActionResult> Delete(string moniker, int id)
         {
             try
             {
-                var speaker = _campRepository.GetSpeaker(id);
+                var speaker = CampRepository.GetSpeaker(id);
                 if (speaker == null)
                 {
                     return NotFound();
@@ -157,16 +175,16 @@ namespace MyCodeCamp.Controllers
                     return Forbid();
                 }
 
-                _campRepository.Delete(speaker);
+                CampRepository.Delete(speaker);
 
-                if (await _campRepository.SaveAllAsync())
+                if (await CampRepository.SaveAllAsync())
                 {
                     return Ok();
                 }
             }
             catch (Exception exception)
             {
-                _logger.LogError($"Exception thrown while deleting speaker: {exception}");
+                Logger.LogError($"Exception thrown while deleting speaker: {exception}");
             }
 
             return BadRequest("Could not delete speaker");
